@@ -1,0 +1,30 @@
+Scenario - Repriduction_2015
+Logfile written - 11/06/2015 15:52:04
+
+Trial	Event Type	Code	Time	TTime	Uncertainty	Duration	Uncertainty	ReqTime	ReqDur	Stim Type	Pair Index
+
+2	Picture	Pic 10	140328	0	1	100163	2	0	next	other	0
+4	Picture	Pic 9	390653	0	1	100163	2	0	next	other	0
+6	Picture	Pic 23	640978	0	1	100163	3	0	next	other	0
+8	Picture	Pic 15	891303	0	1	100164	2	0	next	other	0
+10	Picture	Pic 21	1141628	0	2	100164	3	0	next	other	0
+12	Picture	Pic 1	1391954	0	1	100163	2	0	next	other	0
+14	Picture	Pic 12	1642279	0	1	100163	2	0	next	other	0
+16	Picture	Pic 8	1892604	0	1	100163	3	0	next	other	0
+18	Picture	Pic 2	2142929	0	1	100164	2	0	next	other	0
+20	Picture	Pic 14	2393254	0	2	100164	3	0	next	other	0
+22	Picture	Pic 4	2643579	0	2	100164	3	0	next	other	0
+24	Picture	Pic 20	2893905	0	1	100163	2	0	next	other	0
+26	Picture	Pic 25	3144230	0	1	100163	2	0	next	other	0
+28	Picture	Pic 18	3394555	0	1	100163	3	0	next	other	0
+30	Picture	Pic 16	3644880	0	1	100164	2	0	next	other	0
+32	Picture	Pic 3	3895205	0	2	100164	3	0	next	other	0
+34	Picture	Pic 22	4145531	0	1	100163	2	0	next	other	0
+36	Picture	Pic 24	4395856	0	1	100163	2	0	next	other	0
+38	Picture	Pic 17	4646181	0	1	100163	2	0	next	other	0
+40	Picture	Pic 13	4896506	0	1	100163	3	0	next	other	0
+42	Picture	Pic 19	5146831	0	1	100164	2	0	next	other	0
+44	Picture	Pic 11	5397157	0	1	100163	2	0	next	other	0
+46	Picture	Pic 6	5647482	0	1	100163	2	0	next	other	0
+48	Picture	Pic 5	5897807	0	1	100163	2	0	next	other	0
+50	Picture	Pic 7	6148132	0	1	100163	3	0	next	other	0

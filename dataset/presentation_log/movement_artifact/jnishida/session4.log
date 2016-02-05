@@ -1,0 +1,59 @@
+Scenario - Repriduction_2015
+Logfile written - 06/15/2015 16:06:13
+
+Trial	Event Type	Code	Time	TTime	Uncertainty	Duration	Uncertainty	ReqTime	ReqDur	Stim Type	Pair Index
+
+2	Picture	Pic 1	150447	0	1	100131	3	0	next	other	0
+4	Picture	Pic 2	400859	0	1	100131	3	0	next	other	0
+6	Picture	Pic 3	651271	0	1	100131	3	0	next	other	0
+8	Picture	Pic 4	901683	0	1	100131	3	0	next	other	0
+10	Picture	Pic 5	1152095	0	1	100132	2	0	next	other	0
+12	Picture	Pic 6	1402507	0	1	100132	2	0	next	other	0
+14	Picture	Pic 7	1652919	0	1	100132	2	0	next	other	0
+16	Picture	Pic 8	1903331	0	1	100132	2	0	next	other	0
+18	Picture	Pic 9	2153743	0	1	100132	2	0	next	other	0
+20	Picture	Pic 10	2404155	0	1	100132	2	0	next	other	0
+22	Picture	Pic 11	2654567	0	2	100132	3	0	next	other	0
+24	Picture	Pic 12	2904979	0	2	100132	3	0	next	other	0
+26	Picture	Pic 13	3155391	0	2	100132	3	0	next	other	0
+28	Picture	Pic 14	3405803	0	2	100132	3	0	next	other	0
+30	Picture	Pic 15	3656215	0	2	100132	3	0	next	other	0
+32	Picture	Pic 16	3906627	0	2	100132	3	0	next	other	0
+34	Picture	Pic 17	4157039	0	2	100132	3	0	next	other	0
+36	Picture	Pic 18	4407452	0	1	100131	2	0	next	other	0
+38	Picture	Pic 19	4657696	0	2	100132	3	0	next	other	0
+40	Picture	Pic 20	4908108	0	2	100132	3	0	next	other	0
+42	Picture	Pic 21	5158353	0	1	100132	2	0	next	other	0
+44	Picture	Pic 22	5408598	0	1	100132	2	0	next	other	0
+46	Picture	Pic 23	5658843	0	1	100131	3	0	next	other	0
+48	Picture	Pic 24	5909088	0	1	100131	2	0	next	other	0
+50	Picture	Pic 25	6159333	0	1	100131	2	0	next	other	0
+
+
+Event Type	Code	Type	Response	RT	RT Uncertainty	Time	Uncertainty	Duration	Uncertainty	ReqTime	ReqDur
+
+Picture	Pic 1	other				150447	1	100131	3	0	next
+Picture	Pic 2	other				400859	1	100131	3	0	next
+Picture	Pic 3	other				651271	1	100131	3	0	next
+Picture	Pic 4	other				901683	1	100131	3	0	next
+Picture	Pic 5	other				1152095	1	100132	2	0	next
+Picture	Pic 6	other				1402507	1	100132	2	0	next
+Picture	Pic 7	other				1652919	1	100132	2	0	next
+Picture	Pic 8	other				1903331	1	100132	2	0	next
+Picture	Pic 9	other				2153743	1	100132	2	0	next
+Picture	Pic 10	other				2404155	1	100132	2	0	next
+Picture	Pic 11	other				2654567	2	100132	3	0	next
+Picture	Pic 12	other				2904979	2	100132	3	0	next
+Picture	Pic 13	other				3155391	2	100132	3	0	next
+Picture	Pic 14	other				3405803	2	100132	3	0	next
+Picture	Pic 15	other				3656215	2	100132	3	0	next
+Picture	Pic 16	other				3906627	2	100132	3	0	next
+Picture	Pic 17	other				4157039	2	100132	3	0	next
+Picture	Pic 18	other				4407452	1	100131	2	0	next
+Picture	Pic 19	other				4657696	2	100132	3	0	next
+Picture	Pic 20	other				4908108	2	100132	3	0	next
+Picture	Pic 21	other				5158353	1	100132	2	0	next
+Picture	Pic 22	other				5408598	1	100132	2	0	next
+Picture	Pic 23	other				5658843	1	100131	3	0	next
+Picture	Pic 24	other				5909088	1	100131	2	0	next
+Picture	Pic 25	other				6159333	1	100131	2	0	next

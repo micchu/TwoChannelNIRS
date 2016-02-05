@@ -57,7 +57,7 @@ def repeat_main():
 
 def main(param):    
     # 書込み対象のファイルを用意
-    result_filename = "data/result/result.csv"
+    result_filename = "analysis/result/result.csv"
     if os.path.exists(result_filename):
         _directory, _filename = os.path.split(result_filename)
         _filename, _extention = os.path.splitext(_filename)
@@ -77,7 +77,7 @@ def main(param):
         try:
             processing(subject_id, param, result_filename)
         except MyError as e:
-            fp = open("log.txt", 'a')
+            fp = open("analysis/log.txt", 'a')
             fp.write(subject_id + "\n")
             fp.write(e.value + "\n")
         except Exception, e:
@@ -91,9 +91,9 @@ def processing(subject_id, param, result_filename):
     if PRINT_FLAG:
         print "subject:", subject_id
     # fNIRSデータのディレクトリ
-    signalfile_directory = "/Users/misato/Documents/Research/Experiment/TwoChannelNIRS/signal_data"
+    signalfile_directory = "dataset/signal_data"
     # ラベルデータのディレクトリ
-    labelfile_directory = "/Users/misato/Documents/Research/Experiment/TwoChannelNIRS/questionnaire_result"
+    labelfile_directory = "dataset/questionnaire_result"
     # 呈示ログのディレクトリ
 #    logfile_directory = "/Users/misato/Documents/Research/Experiment/TwoChannelNIRS/presentation_log"
     
