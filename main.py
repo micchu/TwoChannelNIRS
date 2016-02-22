@@ -14,20 +14,24 @@ import myParameter
 
 from import_datafiles.label import import_label
 from import_datafiles.signal import import_signal
+from import_datafiles.presentation_log import import_log
 
 import preprocessing_method.smoothing as prsm
+import preprocessing_method.bandpassfilter as prba
 import relabel as rela
 import extract_task_signal
 from feature_extraction.norm_zero import normalize_0point
 from feature_extraction.slice_signal import slice_signal
+from feature_extraction.SSSM import get_SS_SM
+from feature_extraction.SMSK import get_SM_SK
 
-import resampling_method.bootstarp as rebo
-import resampling_method.smote as resm
+from resampling_method import resampling_controller as recon
 
 from my_classifier.separate_dataset import separate_dataset_for_K_FOLD
 import my_classifier.neural_network as mcnn
 from my_classifier.proc_res import confusion_matrix as confmat
 from my_classifier.proc_res import evaluation_regression as evre
+from matplotlib.pyplot import axis
 
 PRINT_FLAG = True
 
@@ -67,10 +71,10 @@ def main(param):
 
     # 被験者IDリスト
     subject_id_list = ["amurakami", "ckinoshita", "hkimpara", "htanaka", "hwada", "kfukunaga", 
-#                      "khayashinuma", "nishida", "robana", "sarita", "skatsurada", 
                       "kharada", "khayashinuma", "nishida", "robana", "sarita", "skatsurada", 
-                      "syokoyama", "tishihara", "ttamaki", "ykohri", "yokada", "ysakaguchi"]
-    subject_id_list = ["kharada", "hwada"]
+                      "syokoyama", "tishihara", "ttamaki", "yokada", "ysakaguchi"]
+    # selected
+#    subject_id_list = ["ckinoshita"]
 
     # 被験者
     for subject_id in subject_id_list:
@@ -80,8 +84,8 @@ def main(param):
             fp = open("analysis/log.txt", 'a')
             fp.write(subject_id + "\n")
             fp.write(e.value + "\n")
+            fp.write(traceback.format_exc() + '\n')
         except Exception, e:
-            print "in"
             print traceback.format_exc()         
                
 def processing(subject_id, param, result_filename):
@@ -95,7 +99,7 @@ def processing(subject_id, param, result_filename):
     # ラベルデータのディレクトリ
     labelfile_directory = "dataset/questionnaire_result"
     # 呈示ログのディレクトリ
-#    logfile_directory = "/Users/misato/Documents/Research/Experiment/TwoChannelNIRS/presentation_log"
+    logfile_directory = "dataset/presentation_log"
     
     if PRINT_FLAG:
         print "data loading..."
@@ -103,63 +107,124 @@ def processing(subject_id, param, result_filename):
     ########################################################    
     # 前処理・特徴量抽出
     ########################################################    
-
+    #### 読み込み
     # list型 ラベルデータの読み込み（セッション別）
     label_file = os.path.join(labelfile_directory, subject_id + ".csv")
-    label_list_per_session = import_label(label_file)
+    label_list_per_session = import_label(label_file, param.USED_SESSION_LIST)
     
     # fNIRSデータとPresentationログの読み込み
     signal_data_per_session = []
-    for s in range(param.SESSION_NUM):
+    log_per_session = []
+    for s in param.USED_SESSION_LIST:
         # matrix型 fNIRSデータの読み込み
-        signal_file = os.path.join(signalfile_directory, subject_id, subject_id + str(s+1) + ".csv")
+        signal_file = os.path.join(signalfile_directory, subject_id, subject_id + str(s) + ".csv")
         signal_data_per_session.append(import_signal(signal_file)) # 中身はarray型
-        # Presentationログの読み込みは未実装
+        # Presentationログの読み込み
+        log_file =  os.path.join(logfile_directory, subject_id, "session" + str(s) + ".log")
+        log_per_session.append(import_log(log_file, param))
         
     # Reラベル（ラベルの着け直し）
-    if param.RELABEL_METHOD == "step":
-        new_label_list_per_session = []
-        for s in range(param.SESSION_NUM):
-            new_label_list_per_session.append(rela.relabel_step(label_list_per_session[s], param.CLASS_NUM))
-        label_list_per_session = new_label_list_per_session
-    
+    label_list_per_session = relabeling(label_list_per_session, param)
+
+    #### 前処理
     if PRINT_FLAG:
-        print "preprocessing..."
-        
+        print "preprocessing...Signal is %s, Filter is %s, Feature is %s" % (param.TARGET_SIGNAL, param.FILTER_TYPE, param.FEATURE_TYPE)
+
     all_label_list = []
     all_feature_list = []
     # セッション毎に処理
     for s in range(param.SESSION_NUM):
         # 使用する特徴量の選択
-        if param.TARGET_FEATURE == "totalHB":
+        if param.TARGET_SIGNAL == "HBX":
             # 左右のtotalHBのデータのみを抽出 （元データに干渉しないよう、arrayを新しく生成）
             signal1 = np.array(signal_data_per_session[s][:,1].T) # 1次元array型
             signal2 = np.array(signal_data_per_session[s][:,4].T) # 1次元array型
+        if param.TARGET_SIGNAL == "HBX1":
+            # 左右のtotalHB(深さ1cm)のデータのみを抽出 （元データに干渉しないよう、arrayを新しく生成）
+            signal1 = np.array(signal_data_per_session[s][:,2].T) # 1次元array型
+            signal2 = np.array(signal_data_per_session[s][:,5].T) # 1次元array型
+        if param.TARGET_SIGNAL == "HBX3":
+            # 左右のtotalHB(深さ3cm)のデータのみを抽出 （元データに干渉しないよう、arrayを新しく生成）
+            signal1 = np.array(signal_data_per_session[s][:,3].T) # 1次元array型
+            signal2 = np.array(signal_data_per_session[s][:,6].T) # 1次元array型
        
-            # 各データの単独処理
-            preprocessed_signal_array1 = preprocessing(signal1, param)
-            preprocessed_signal_array2 = preprocessing(signal2, param)
-    
-            # 左右データの結合 （列方向での結合）
-            preprocessed_signal_array = np.c_[preprocessed_signal_array1, preprocessed_signal_array2]
-                        
+        # 信号列の可視化
+        if False:  
+            visualize_signal(subject_id, s, signal1, signal2, param, _range="free")
+
+        # 各データの前処理
+        preprocessed_signal_array1 = preprocessing(signal1, param)
+        preprocessed_signal_array2 = preprocessing(signal2, param)
+        
+        # ノイズ判定
+        noisy_signal_array1 = detect_noise(preprocessed_signal_array1, param)
+        noisy_signal_array2 = detect_noise(preprocessed_signal_array2, param)
+        # 合算
+        noisy_signal_array  = np.asarray(np.logical_or(noisy_signal_array1, noisy_signal_array2), dtype=int)
+#        print noisy_signal_array
+        
+        # 信号列の可視化
+        if False:
+            visualize_signal(subject_id, s, preprocessed_signal_array1, preprocessed_signal_array2, 
+                             param, _range="free",
+                             noise = noisy_signal_array)
+            
+        # データから特徴量の抽出・ノイズ部位の除去
+        feature_array1, used_flag_list = extract_features(preprocessed_signal_array1, log_per_session[s], param, noisy_signal = noisy_signal_array)
+        feature_array2, used_flag_list = extract_features(preprocessed_signal_array2, log_per_session[s], param, noisy_signal = noisy_signal_array)
+        #print used_flag_list
+        # 左右データの結合 （列方向での結合）
+        feature_array = np.c_[feature_array1, feature_array2]
+
+        # ノイズ判定に基づくラベルの削減
+        used_label_list = [label_list_per_session[s][i] for i in range(len(label_list_per_session[s])) if used_flag_list[i]]
+        
+        # ラベルの使用に合わせたデータ削減
+        new_label_list_per_session = []
+        new_feature_array_list = []
+        for i in range(len(used_label_list)):
+            if used_label_list[i] == None:
+                pass
+            else:
+                new_label_list_per_session.append(used_label_list[i])
+                new_feature_array_list.append(feature_array[i])
+            
         # 全セッションデータの融合
-        all_label_list.extend(label_list_per_session[s])
-        all_feature_list.append(preprocessed_signal_array)
+        all_label_list.extend(new_label_list_per_session)
+        all_feature_list.append(np.vstack(new_feature_array_list))
+
+        # セッション毎の特徴量の可視化
+        if False: 
+            visualize_feature(subject_id, s, np.vstack(new_feature_array_list), 
+                              new_label_list_per_session, param)
+            visualize_feature(subject_id, s, np.vstack(new_feature_array_list), 
+                              new_label_list_per_session, param, print_all = True)
         
     # 行方向にsingalのarrayを連結
     all_feature_array = np.vstack(all_feature_list)
     # 特徴量の次元数を定数化
     feature_dimension_size = len(all_feature_array[0])
 
+    # 全セッションの特徴量の可視化
+    if False:
+        visualize_feature(subject_id, "all", all_feature_array, all_label_list, param)
+        visualize_feature(subject_id, "all", all_feature_array, 
+                          all_label_list, param, print_all = True)
+
     if False:
         # 使用する特徴量の一次出力
         cc = csv.writer(open("tmp.csv", 'wb'))
-        ret_array = np.reshape(np.array(all_label_list), (len(all_label_list),1))
-        ret_array = np.c_[ret_array, all_feature_array]
+        session_sample_id_list = []
+        for s in range(param.SESSION_NUM):
+            session_sample_id_list.extend([s+1 for _ in range(len(all_feature_list[s]))])
+        ses_array = np.reshape(np.array(session_sample_id_list), (len(session_sample_id_list),1))
+        lab_array = np.reshape(np.array(all_label_list), (len(all_label_list),1))
+        ret_array = np.c_[ses_array, lab_array, all_feature_array]
         ret_list = ret_array.tolist()
         cc.writerows(ret_list)
 
+    # 画像のみ描画したい場合はここでエラーを発生させると良い。
+    #raise MyError("Next subject!")
     ########################################################    
     # 機械学習
     ########################################################    
@@ -170,7 +235,7 @@ def processing(subject_id, param, result_filename):
     if PRINT_FLAG:
         print "validation...", str(param.N_FOLD)+"-FOLD"
     dataset_label_list, dataset_feature_array = separate_dataset_for_K_FOLD(all_label_list, all_feature_array, param.N_FOLD, param.RAND)
-
+    
     # K-foldクロスバリデーションに基づく識別率の計算
     default_accuracy = 0.0
     default_loss = 0.0
@@ -183,7 +248,7 @@ def processing(subject_id, param, result_filename):
         # トレーニングデータとテストデータの分離
         # テストデータ
         test_label_list = dataset_label_list[k]
-        test_feature_array = dataset_feature_array[k,]
+        test_feature_array = np.array(dataset_feature_array[k], dtype=np.float32)
 
         # トレーニングデータ
         training_label_list = []
@@ -191,25 +256,33 @@ def processing(subject_id, param, result_filename):
         for j in range(param.N_FOLD):
             if k != j:
                 training_label_list.extend(dataset_label_list[j])
-                training_feature_list.append(dataset_feature_array[j,])
+                training_feature_list.append(dataset_feature_array[j])
+        #print training_feature_list
         training_feature_array = np.vstack(training_feature_list)
             
         # リサンプリング処理
         print "resampling..."
-        resampled_training_label_list, resampled_training_feature_array = resampling(training_label_list, 
+        resampled_training_label_list, resampled_training_feature_array = recon.resampling(training_label_list, 
                                                                                      training_feature_array, param)
-        # array型への変換
-        resampled_training_feature_array.astype(np.float32)# = np.astype(resampled_training_feature_array, dtype=)
-        test_feature_array.astype(np.float32)# = np.array(test_feature_list, dtype=)
-        resampled_training_label_array = np.array(resampled_training_label_list, dtype=np.int32)
-        test_label_array = np.array(test_label_list, dtype=np.int32)
-
         # トレーニングデータの並び替え
-        mixed = resampled_training_label_array.reshape((len(resampled_training_label_array),1))
+        mixed = np.array(resampled_training_label_list).reshape((len(resampled_training_label_list),1))
         mixed = np.c_[mixed, resampled_training_feature_array]            
         np.random.shuffle(mixed)
-        resampled_training_label_array = mixed[:,0].flatten().astype(np.int32)
-        resampled_training_feature_array = mixed[:,1:].astype(np.float32)
+        resampled_training_label_array = mixed[:,0].flatten()
+        resampled_training_feature_array = mixed[:,1:]
+
+        # array型への変換
+        # 特徴量
+        resampled_training_feature_array = np.array(resampled_training_feature_array, dtype=np.float32)
+        test_feature_array = np.array(test_feature_array, dtype=np.float32)
+        
+        # ラベル
+        if param.LEARNING_TYPE == "class":  
+            resampled_training_label_array = np.array(resampled_training_label_array, dtype=np.int32)
+            test_label_array = np.array(test_label_list, dtype=np.int32)
+        elif param.LEARNING_TYPE == "regression":
+            resampled_training_label_array = np.array(resampled_training_label_array, dtype=np.float32)
+            test_label_array = np.array(test_label_list, dtype=np.float32)
 
         # 識別器の構築
         print "train..."+param.LEARNING_METHOD+","+param.LEARNING_TYPE
@@ -308,94 +381,162 @@ def processing(subject_id, param, result_filename):
     # END    
 
     
-def resampling(label_list, feature_list, param):
-    """
-    リサンプリングの実行
-    @param label_list: ラベル
-    @param feature_list: 特徴量 二次元array型(サンプル数×特徴次元数)
-    @param param: パラメータモジュール  
-    @return: 元のラベル+新しく作成されたラベルのリスト、元の特徴量+新しく作成された特徴量リスト
-    """
-    if param.RESAMPLING_TYPE == "none": # リサンプリングしない
-        return label_list, feature_list
 
-    # ラベルの一意リスト    
-    distinct_label_list = set(label_list)
+def detect_noise(signal, param):
+    """
+    ノイズの判定
+    @param signal: fNIRS信号 1次元array型
+    @param param: パラメータオブジェクト
     
-    new_label_list = []
-    new_feature_list = []
-    for label in distinct_label_list:
-        # 各ラベルのデータを抽出
-        extracted_feature_list = []
-        for i in range(len(label_list)):
-            if label == label_list[i]:
-                extracted_feature_list.append(feature_list[i])
-                
-        # 各リサンプリング手法の実行
-        if param.RESAMPLING_TYPE == "static": # 特定数までサンプルを増やす
-            resampled_feature_list = None
-            if param.RESAMPLING_METHOD == "bootstrap": 
-                # リサンプリングの実行（今、重複無しになっている）
-                resampled_feature_list = rebo.bootstrap(extracted_feature_list, param.RESAMPLING_SIZE - len(extracted_feature_list), param.RESAMPLING_N_SIZE, param.RAND, duplication = False)
-            elif param.RESAMPLING_METHOD == "smote":
-                # リサンプリングの実行（今、重複無しになっている）
-                resampled_feature_list = resm.smote(extracted_feature_list, param.RESAMPLING_SIZE - len(extracted_feature_list), param.RESAMPLING_N_SIZE)
-            # ラベルと特徴量の格納
-            new_feature_list.extend(extracted_feature_list)
-            new_feature_list.extend(resampled_feature_list)
-            new_label_list.extend([label for _ in range(param.RESAMPLING_SIZE)])
-            
-        if param.RESAMPLING_TYPE == "replace": # 同サンプル数で置き換える
-            resampled_feature_list = None
-            if param.RESAMPLING_METHOD == "bootstrap": 
-                # リサンプリングの実行
-                resampled_feature_list = rebo.bootstrap(extracted_feature_list, len(extracted_feature_list), param.RESAMPLING_N_SIZE, param.RAND, duplication = False)
-            elif param.RESAMPLING_METHOD == "smote":
-                # リサンプリングの実行
-                resampled_feature_list = resm.smote(extracted_feature_list, len(extracted_feature_list), param.RESAMPLING_N_SIZE)
-            # ラベルと特徴量の格納
-            new_feature_list.extend(resampled_feature_list)
-            new_label_list.extend([label for _ in range(len(extracted_feature_list))])
+    @return: noisy_signal ノイズ領域を1、非ノイズ領域を0とした1次元array  
+    """
+    # ノイズ判定範囲の設定
+    width = param.NOISY_T_RANGE/2
     
-    # array型に変換
-    new_feature_array = np.asarray(new_feature_list)
-
-    return new_label_list, new_feature_array
+    # ノイズ領域を格納するarray
+    noisy_signal = np.array([0 for i in range(len(signal))])
+    # 最初と最後はノイズ領域にしておく
+    noisy_signal[:width] = 1
+    noisy_signal[len(signal)-width:] = 1
     
+    for i in range(width, len(signal)-width):
+        if max(signal[i-width:i+width])-min(signal[i-width:i+width]) > param.NOISY_THRESHOLD:
+            noisy_signal[i:i+param.AFTER_NOISE] = 1
+    
+    return noisy_signal
 
 def preprocessing(signal, param):
     """
-    前処理における各シグナルの単独処理（確認済）
+    各シグナルの前処理（確認済）
     @param singal: fNIRS信号 1次元array型
     @param param: パラメータモジュール  
     
-    @return: 前処理終了後のシグナル値 2次元array型（サンプル数×特徴次元数）
+    @return: 前処理終了後のシグナル値 1次元array型（特徴次元数）
     """            
-    # データの前処理
-    # HPF
-    # pass
+    ###### データの前処理
+    # バンドパスフィルタ
+    if param.FILTER_TYPE == "butter":
+        preprocessed_signal = prba.butter_bandpass_filter(signal, param.BPF_BAND[0], param.BPF_BAND[1], 
+                                                          param.FS, order = param.BUTTER_WORTH_ORDER)
+    else: # フィルタ処理無し
+        preprocessed_signal = signal 
     
     # 平滑化
-    smoothed_signal = prsm.smoothing(signal, param.SMOOTHING_LENGTH)
+    if param.SMOOTHING_TYPE:
+        preprocessed_signal = prsm.smoothing(preprocessed_signal, param.SMOOTHING_LENGTH)
+    else: # 平滑化処理無し
+        pass
     
+    # 1次微分
+    if param.DIFF >= 1:
+        preprocessed_signal_n = np.roll(preprocessed_signal, -1)
+        preprocessed_signal = preprocessed_signal_n - preprocessed_signal
+    # 2次微分
+    elif param.DIFF == 2:
+        preprocessed_signal_n = np.roll(preprocessed_signal, -1)
+        preprocessed_signal_p = np.roll(preprocessed_signal, 1)
+        preprocessed_signal = (preprocessed_signal_n - preprocessed_signal) - (preprocessed_signal - preprocessed_signal_p)
+    
+    return preprocessed_signal
+
+def extract_features(preprocessed_signal, task_start_index, param, noisy_signal = []):
+    """
+    前処理後のシグナルからの特徴量抽出
+    @param preprocessed_signal: 前処理後の特徴量
+    @param task_start_index: タスク開始のインデックスデータ 
+    @param param: パラメータモジュール
+    @keyword noisy_signal: ノイズ領域array 
+    @return: 特徴量 2次元array型（サンプル数×特徴次元数）, user_flag_listその特徴量が使用されたか否か  
+    """
     # タスク期間中のデータの切り出し
-    signal_array = extract_task_signal.extract_task_signal(smoothed_signal, param.TASK_START, param.TASK_DURATION)
+    signal_array = extract_task_signal.extract_task_signal(preprocessed_signal, task_start_index, param.TASK_DURATION)
+    # ノイズ領域に重複している場合はそのデータを除去
+    used_flag_list = [] # 使用されたか否か
+    if noisy_signal != []:
+        noisy_array = extract_task_signal.extract_task_signal(noisy_signal, task_start_index, param.TASK_DURATION)
+        noise_reduced_signal_list = []
+        for i in range(len(signal_array)):
+            if sum(noisy_array[i]) > 0:
+                used_flag_list.append(False)
+            else:
+                used_flag_list.append(True)
+                noise_reduced_signal_list.append(signal_array[i])
+        signal_array = np.vstack(noise_reduced_signal_list)
     
-    # 特徴量への変換
+    ###### 特徴量抽出
     # 1秒おきの抽出
-    sliced_singal_list = []
-    for i in range(len(signal_array)):
-        new_sig = slice_signal(signal_array[i,], param.SAMPLING_START_LAG, param.SAMPLING_RATE)
-#        print type(new_sig), new_sig
-        #print "slice", new_sig
-        new_sig = normalize_0point(new_sig)
-        #print "nor", new_sig
-        sliced_singal_list.append(new_sig)
+    if param.FEATURE_TYPE == "SLICE":
+        sliced_singal_list = []
+        for i in range(len(signal_array)):
+            new_sig = slice_signal(signal_array[i], param.SLICE_START_LAG, param.SLICE_RATE)
+            # 0点補正
+            new_sig = normalize_0point(new_sig)
+            sliced_singal_list.append(new_sig)
+        feature_array = np.asarray(sliced_singal_list, dtype=np.float32)
+    
+    # SSとSMの計算
+    elif param.FEATURE_TYPE == "SSSM":
+        new_feature_list = []
+        for i in range(len(signal_array)):
+            ss, sm = get_SS_SM(signal_array[i,], param.SSSM_START, param.SSSM_WINDOW)
+            new_feature_list.append([ss, sm])
+        feature_array = np.asarray(new_feature_list, dtype=np.float32)
 
-    sliced_singal_array = np.asarray(sliced_singal_list)
+    # MeanとSkewnessの計算
+    elif param.FEATURE_TYPE == "SMSK":
+        new_feature_list = []
+        for i in range(len(signal_array)):
+            sm, sk = get_SM_SK(signal_array[i,])
+            new_feature_list.append([sm, sk])
+        feature_array = np.asarray(new_feature_list, dtype=np.float32)
+    
+    else:
+        raise NameError("Parameter miss: FEATURE TYPE not exist: " + str(param.FEATURE_TYPE))
+    
+    return feature_array, used_flag_list
 
-    return sliced_singal_array
+def relabeling(label_list_per_session, param):
+    """
+    リラベル
+    @param label_list_per_session: ラベルリスト（セッション×各ラベル）
+    @param param: パラメータモジュール 
+    
+    @return: new_label_list_per_session 付け直されたラベルのリスト
+    """
+    # 新しいラベル
+    new_label_list_per_session = []
 
+    # Regression用のラベル
+    if param.RELABEL_METHOD == "scaling":
+        print "Realabel isn't performed...*0.1"
+        for s in range(param.SESSION_NUM):
+            new_label_list_per_session.append([l*0.1-0.5 for l in label_list_per_session[s]])
+    
+    # マッピングに従う固定リラベル
+    if param.RELABEL_METHOD == "mapping":
+        print "Classess are groupd by a mapping list."
+        for s in range(param.SESSION_NUM):
+            new_label_list_per_session.append(rela.relabel_basedon_mapping(label_list_per_session[s], param.RELABEL_MAPPING))
+
+    # 分散最小化
+    elif param.RELABEL_METHOD == "var":
+        print "Classess are groupd by varinace values."
+        # 全セッションデータの結合
+        reduced_label_list_per_session = reduce(lambda x,y: x+y, label_list_per_session)
+        new_label_list = rela.relabel_minimize_variance(reduced_label_list_per_session, param.CLASS_NUM)
+        counter = 0
+        for i in range(len(label_list_per_session)):
+            new_label_list_per_session.append([])
+            for _ in range(len(label_list_per_session[i])):
+                new_label_list_per_session[i].append(new_label_list[counter])
+                counter += 1
+#    print label_list_per_session
+#    print new_label_list_per_session
+#    quit()
+    
+    return new_label_list_per_session
+        
+        
 def logging_result_class(subject_id, target_filename, accuracy, loss, precision, recall, 
                          f_measure, dist, corr, p_value, result_mat,
                          all_test_label_list, all_result_label_list, all_result_loss_list):
@@ -467,6 +608,154 @@ def logging_result_regression(subject_id, target_filename, dist, corr, p_value, 
     # 書込み
     cw.writerow(res_row)
     
+def visualize_signal(subject_id, session_num, signal1, signal2, param, 
+                     _range="static", noise = None):
+    """
+    あるセッションに置ける前処理後の信号列の可視化（左右双方）
+    @param subect_id: 被験者ID 
+    @param session_num: セッション番号
+    @param signal1, signal2: 処理された信号 
+    @param param: パラメータモジュール  
+    @keyword _range: staticだと-0.25〜0.25、freeだと自動決定 
+    @keyword noise: ノイズ情報のarray
+    """
+    # 可視化
+#    import matplotlib.mpl.rcParams as rcp
+    import matplotlib.pyplot as plt
+    plt.figure(1, figsize=(12,5))
+    plt.clf()
+    plt.rcParams['font.size'] = 10
+    t = np.linspace(0, param.TOTAL_SAMPLE_NUM/param.FS, param.TOTAL_SAMPLE_NUM, endpoint=False)
+    plt.plot(t, signal1[:param.TOTAL_SAMPLE_NUM], label='signal_left_%s'%(param.TARGET_SIGNAL))
+    plt.plot(t, signal2[:param.TOTAL_SAMPLE_NUM], label='signal_right_%s'%(param.TARGET_SIGNAL))
+    for i in range(25):
+        plt.axvspan(15+i*25, 25+25*i, color='red', alpha=0.5)
+    # ノイズ部分を編みかけ
+    if noise != None: 
+        st = -1
+        for i in range(param.TOTAL_SAMPLE_NUM):
+            if st == -1 and noise[i] == 1:
+                st = i
+            elif st != -1 and noise[i] == 0:
+                plt.axvspan(st/param.FS, i/param.FS, color='grey', alpha=0.5)
+                st = -1
+        if st != -1:
+            plt.axvspan(st/param.FS, param.TOTAL_SAMPLE_NUM/param.FS, color='grey', alpha=0.5)
+            st = -1
+        
+    plt.xlabel('time (seconds)')
+    plt.grid(True)
+    plt.axis('tight')
+    plt.legend(loc='upper left')
+    if _range == "static":
+        plt.ylim(-0.25, 0.25)
+    plt.savefig("analysis/visualization1/"+subject_id+"_"+param.TARGET_SIGNAL+"_s"+str(session_num)+".png")
+
+def visualize_feature(subject_id, session_num, signal_array, label_list, param, print_all=False):
+    """
+    あるセッションに置ける前処理後の信号列の可視化（左右双方）
+    @param subect_id: 被験者ID 
+    @param session_num: セッション番号
+    @param signal_array: 処理された信号 2次元array型
+    @param label_list: セッション毎のラベルリスト 
+    @param param: パラメータモジュール 
+    @keyword print_all: 平均だけでなく全データを描画する  
+    """
+    import matplotlib.pyplot as plt
+
+    if session_num == "all":
+        # 結合
+        label_array = np.array(label_list).flatten()
+        new_array = np.hstack((label_array.reshape(len(label_array),1), signal_array))
+    else:
+        new_array = np.hstack((np.array(label_list).reshape(len(label_list),1), signal_array))
+        
+    # 分化
+    new_label_array = [[] for _ in range(len(param.CLASS_LIST))]
+    for na in new_array:
+        new_label_array[int(na[0])].append(na)
+
+    # 可視化
+    plt.figure(1, figsize=(12,5))
+    plt.clf()
+    dim_size = len(new_array[0])
+
+    color_list = ['blue', 'cyan', 'green', '#FFA500', 'red']
+
+    # 統計処理および可視化
+    if param.FEATURE_TYPE == "SLICE":
+        for c in range(len(param.CLASS_LIST)):
+            if new_label_array[c] != []:
+                if print_all:
+                    new_label_array_c = np.asarray(new_label_array[c])
+                    t = np.asarray(range(dim_size-1))
+                    # 個々のデータの描画
+                    for d in range(len(new_label_array_c)):
+                        plt.plot(t, new_label_array_c[d, 1:dim_size], 
+                                 color = color_list[c], linewidth=0.5)
+                    # 平均・標準偏差の描画
+                    neo_averaged = np.mean(np.asarray(new_label_array[c]), axis=0)
+                    neo_variance = np.std(np.asarray(new_label_array[c]), axis=0)
+                    plt.errorbar(t, neo_averaged[1:dim_size], 
+                                 yerr=neo_variance[1:dim_size], 
+                                 color = color_list[c], linewidth=2,
+                                 label='signal_class%s'%(str(param.CLASS_LIST[c])))
+                else:
+                    t = np.asarray(range(dim_size-1))
+                    # 平均・標準偏差の描画
+                    neo_averaged = np.mean(np.asarray(new_label_array[c]), axis=0)
+                    neo_variance = np.std(np.asarray(new_label_array[c]), axis=0)
+                    plt.errorbar(t, neo_averaged[1:dim_size], 
+                                 yerr=neo_variance[1:dim_size], 
+                                 color = color_list[c], linewidth=2,
+                                 label='signal_class%s'%(str(param.CLASS_LIST[c])))
+
+    elif param.FEATURE_TYPE in ["SSSM", "SMSK"]:
+        # 各次元のスケーリング用の絶対値最大値のarray
+        new_array_max = np.max(abs(new_array), axis=0)
+        new_array_max[new_array_max==0] = 1 # 0で割らないように工夫
+        
+        for c in range(len(param.CLASS_LIST)):
+            if new_label_array[c] != []:
+                if print_all:
+                    new_label_array_c = np.asarray(new_label_array[c])
+                    new_label_array_c /= new_array_max
+                    t = np.asarray(range(1,dim_size))#np.linspace(1, dim_size-1, dim_size, endpoint=False)
+                    # 個々のデータの描画
+                    for d in range(len(new_label_array_c)):
+                        plt.plot(t, new_label_array_c[d][1:dim_size+1], 
+                                 color = color_list[c])
+                    # 平均・標準偏差の描画
+                    neo_averaged = np.mean(new_label_array_c, axis=0)
+                    neo_variance = np.std(new_label_array_c, axis=0)
+                    t = np.asarray(range(1,dim_size))#np.linspace(1, dim_size-1, dim_size, endpoint=False)
+                    plt.errorbar(t, neo_averaged[1:dim_size], 
+                                 yerr=neo_variance[1:dim_size], 
+                                 color = color_list[c],
+                                 label='signal_class%s'%(str(param.CLASS_LIST[c])))
+                else:
+                    new_label_array_c = np.asarray(new_label_array[c])
+                    new_label_array_c /= new_array_max
+                    # 平均・標準偏差の描画
+                    neo_averaged = np.mean(new_label_array_c, axis=0)
+                    neo_variance = np.std(new_label_array_c, axis=0)
+                    t = np.asarray(range(1,dim_size))#np.linspace(1, dim_size-1, dim_size, endpoint=False)
+                    plt.errorbar(t, neo_averaged[1:dim_size], 
+                                 yerr=neo_variance[1:dim_size], 
+                                 color = color_list[c],
+                                 label='signal_class%s'%(str(param.CLASS_LIST[c])))
+        plt.xlim(0.0,dim_size+1)
+        plt.ylim(-1.3, 1.3)
+
+    # 可視化
+    plt.xlabel('time (seconds)')
+    plt.grid(True)
+#    plt.axis('tight')
+    plt.legend(loc='upper left')
+    if print_all:
+        plt.savefig("analysis/visualization3/"+subject_id+"_"+param.TARGET_SIGNAL+"_"+str(session_num)+".png")
+    else:
+        plt.savefig("analysis/visualization2/"+subject_id+"_"+param.TARGET_SIGNAL+"_"+str(session_num)+".png")
     
 if __name__=="__main__":
     repeat_main()

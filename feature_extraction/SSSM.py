@@ -22,7 +22,6 @@ def get_SS_SM(signal, start, window):
     """
     # 計算対象領域の抽出
     target_signal = signal[start:start+window]
-#    print target_signal
     
     # Signal Slopeの計算
     slope, seppen = np.polyfit(target_signal, range(len(target_signal)), 1)

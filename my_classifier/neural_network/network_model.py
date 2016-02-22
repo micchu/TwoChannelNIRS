@@ -17,9 +17,20 @@ def set_model(feature_dimension_size, param, output_units):
 
     @return: ネットワークモデル
     """
-    n_units   = param.NODE_NUM_1LAYER
-    model = FunctionSet(l1=F.Linear(feature_dimension_size, n_units),
-                l2=F.Linear(n_units, n_units),
-                l3=F.Linear(n_units, output_units))
+    if param.HIDDEN_LAYER_NUM == 1:
+        # 3層パーセプトロン（入力層、中間層1、出力層）
+        model = FunctionSet(l1=F.Linear(feature_dimension_size, param.NODE_NUM_1LAYER),
+                    l2=F.Linear(param.NODE_NUM_1LAYER, output_units))
+    if param.HIDDEN_LAYER_NUM == 2:
+        # 4層パーセプトロン（入力層、中間層1、中間層2、出力層）
+        model = FunctionSet(l1=F.Linear(feature_dimension_size, param.NODE_NUM_1LAYER),
+                    l2=F.Linear(param.NODE_NUM_1LAYER, param.NODE_NUM_2LAYER),
+                    l3=F.Linear(param.NODE_NUM_2LAYER, output_units))
+    if param.HIDDEN_LAYER_NUM == 3: 
+        # 5層パーセプトロン
+        model = FunctionSet(l1=F.Linear(feature_dimension_size, param.NODE_NUM_1LAYER),
+                    l2=F.Linear(param.NODE_NUM_1LAYER, param.NODE_NUM_2LAYER),
+                    l3=F.Linear(param.NODE_NUM_2LAYER, param.NODE_NUM_3LAYER),
+                    l4=F.Linear(param.NODE_NUM_3LAYER, output_units))
     return model
 

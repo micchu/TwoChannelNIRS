@@ -10,6 +10,7 @@ Update on 2016/02/01
 
 from chainer import Variable
 import chainer.functions as F
+import numpy as np
 
 def forward_data(model, x_data, y_data, train=True):
     """
@@ -42,12 +43,16 @@ def forward_data_regression(model, x_data, y_data, train=True):
     @return: 誤差と予測結果を返す
     """
     #データをnumpy配列からChainerのVariableという型(クラス)のオブジェクトに変換して使わないといけない
-    x, t = Variable(x_data), Variable(y_data)
+    x, t = Variable(x_data), Variable(y_data.reshape(1,1))
+#    x, t = Variable(x_data), Variable(np.array(y_data, dtype=np.float32).reshape(1,1))
 
     #ドロップアウトでオーバーフィッティングを防止
+#    h1 = F.dropout(F.relu(model.l1(x)), ratio=0.6, train=train)
+#    h2 = F.dropout(F.relu(model.l2(h1)), ratio=0.8, train=train)
     h1 = F.dropout(F.relu(model.l1(x)), ratio=0.4, train=train)
     h2 = F.dropout(F.relu(model.l2(h1)), ratio=0.5, train=train)
 
+#    y  = model.l3(h1)
     y  = model.l3(h2)
     
     # 回帰なので誤差関数として最小二乗誤差を利用

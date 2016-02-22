@@ -45,7 +45,7 @@ def separate_dataset_for_K_FOLD(label_list, feature_array, num, randobj):
             counter = 0
     
     # array型への変換
-    dataset_feature_array = np.asarray(dataset_feature_list)
+    dataset_feature_array = np.array(dataset_feature_list)
     
     return dataset_label_list, dataset_feature_array
 

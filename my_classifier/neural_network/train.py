@@ -194,7 +194,7 @@ def train_nn_regression(model, x_train, y_train, batchsize, epoch_num, test_flag
         if test_flag:
             if epoch % pace == 0:
                 predicted_value_list, loss_list = test_nn_regression(model, x_test, y_test)
-                print 'test: loss={}'.format(np.average(loss_list))
+                print 'test: loss={}, teach={}, predicted={}'.format(np.average(loss_list), y_test, predicted_value_list)
                 
 #                test_sum_accuracy = 0
 #                test_sum_loss     = 0

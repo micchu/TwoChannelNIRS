@@ -9,9 +9,29 @@ Created on 2016/01/28
 
 import numpy as np
 
+def relabel_basedon_mapping(label_list, mapping):
+    """
+    固定値で0から4へリラベル
+    現状5classのみ実装
+    @param label_list: ラベルのリスト
+    @param mapping: ラベルのマッパ
+    @return: 新しいラベルのリスト（順序は与えられたラベルのリストと同じ）  
+    """
+    new_label_list = []
+
+    for i in range(len(label_list)):
+        label = label_list[i]
+        if mapping.has_key(label):
+            new_label_list.append(int(mapping[label]))
+        else:
+            new_label_list.append(None)
+            
+    return new_label_list
+
+
 def relabel_step(label_list, class_num):
     """
-    固定値でリラベル
+    固定値で0から4へリラベル
     現状5classのみ実装
     @param label_list: ラベルのリスト
     @param class_num: クラス数
@@ -30,7 +50,7 @@ def relabel_step(label_list, class_num):
     
 def relabel_minimize_variance(label_list, class_num):
     """
-    分散最小化でリラベル（各クラスのサンプル数をできるだけ揃える）
+    分散最小化で0から4へリラベル（各クラスのサンプル数をできるだけ揃える）
     現状5クラスのみ実装
     @param label_list: ラベルのリスト
     @param class_num: クラス数
@@ -44,9 +64,6 @@ def relabel_minimize_variance(label_list, class_num):
     distinct_class_num = len(distinct_class_label)
     
     label_num_list = [label_list.count(c) for c in distinct_class_label]
-#    print distinct_class_label
-#    print label_num_list
-#    print 
     
     # 5クラスの場合
     if class_num == 5:
@@ -65,28 +82,21 @@ def relabel_minimize_variance(label_list, class_num):
                         
                         variance = np.var([a,b,c,d,e])
                         if variance < min_var:
-#                            print min_var, i, j, k, l
                             min_var = variance
                             min_parameter = [i, j, k, l]
-        # クラスのマッピングの作成
-        i,j,k,l = min_parameter
-#        print "result", min_var, i,j,k,l
-#        print label_num_list[:i]
-#        print label_num_list[i:j]
-#        print label_num_list[j:k]
-#        print label_num_list[k:l]
-#        print label_num_list[l:]
-        class_mapping = [0]
-        class_mapping.extend([1 for _ in range(i)])
-        class_mapping.extend([2 for _ in range(j-i)])
-        class_mapping.extend([3 for _ in range(k-j)])
-        class_mapping.extend([4 for _ in range(l-k)])
-        class_mapping.extend([5 for _ in range(distinct_class_num-l)])
-#        print "mapping", class_mapping
         
         # ラベルの置き換え
         for i in range(len(label_list)):
-            new_label_list.append(class_mapping[label_list[i]])
+            if label_list[i] < min_parameter[0] + 1: # 与えられたラベルは1スタートなので、indexとはちょっとずれる
+                new_label_list.append(0)
+            elif  label_list[i] < min_parameter[1] + 1:  
+                new_label_list.append(1)
+            elif  label_list[i] < min_parameter[2] + 1:  
+                new_label_list.append(2)
+            elif  label_list[i] < min_parameter[3] + 1:
+                new_label_list.append(3)
+            else:  
+                new_label_list.append(4)
 
         return new_label_list
         
@@ -94,9 +104,13 @@ if __name__=="__main__":
     import random
     label_list = [random.randint(1,10) for i in range(40)]
     print label_list
-    _label_list = sorted(label_list)
-    new_label_list = relabel_step(label_list, 5)
-    #new_label_list = relabel_minimize_variance(_label_list, 5)    
+    #new_label_list = relabel_step(label_list, 5)
+    new_label_list = relabel_minimize_variance(label_list, 5)    
 #    print _label_list
     print new_label_list
+    print len(new_label_list)
+    print sorted(label_list)
+    print sorted(new_label_list)
+    for i in range(5):
+        print new_label_list.count(i),
     

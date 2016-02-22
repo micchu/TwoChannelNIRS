@@ -13,28 +13,27 @@ Update on 2016/1/29
 import csv
 import numpy as np
 
-def import_label(target_file):
+def import_label(target_file, used_session_list):
     """
     ファイルからラベルデータを読込み、数値化した上でセッション毎に分けて返す
     @param target_file: 読込み対象の絶対パス
+    @param used_session_list: 使用するセッション番号 
     @return: 読込んだデータのリストデータ 行：セッション、列：呈示数
     """
     cr = csv.reader(open(target_file, 'Ur'))
     cr.next() # ヘッダ行を飛ばす
 
-    session = 1
-    label_in_sessions = []
-    label_in_a_session = []
+    label_in_sessions = [[] for _ in range(len(used_session_list))]
+#    label_in_a_session = []
     for r in cr:
-        if session != int(r[0]):
-            session += 1
-            label_in_sessions.append(label_in_a_session)
-            label_in_a_session = []
-        label_in_a_session.append(int(r[4]))
-    label_in_sessions.append(label_in_a_session)
-
+        ses = int(r[0])
+        if ses in used_session_list:
+            label_in_sessions[used_session_list.index(ses)].append(int(r[4]))
+    
     return label_in_sessions
     
 if __name__=="__main__":
-    target_file = "/Users/misato/Documents/Research/Experiment/TwoChannelNIRS/questionnaire_result/amurakami.csv"
-    print import_label(target_file)
+    target_file = "../dataset/questionnaire_result/amurakami.csv"
+    ret = import_label(target_file, [2,4])
+    print ret
+    print len(ret)

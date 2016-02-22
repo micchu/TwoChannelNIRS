@@ -77,7 +77,7 @@ def test_nn_regression(model, x_test, y_test):
         loss, predicted = forward_data_regression(model, x_batch, y_batch, train=False)
 
         # 結果の格納
-        predicted_value_list.append(predicted)
+        predicted_value_list.append(float(cuda.to_cpu(predicted.data)))
         loss_list.append(float(cuda.to_cpu(loss.data)))
         sum_loss += float(cuda.to_cpu(loss.data))
     
