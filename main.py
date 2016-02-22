@@ -38,26 +38,31 @@ PRINT_FLAG = True
 def repeat_main():
     repeat_num = 1
     # none
-    for seed in range(repeat_num):
-        # パラメータモジュール
-        param = myParameter.myParameter()
-        # 乱数モジュール
-        param.RAND = random.Random()
-#        param.N_FOLD = 100
-        # 実行
-        main(param)
-    
-#    # replace
-#    for seed in range(repeat_num):
-#        # パラメータモジュール
-#        param = myParameter.myParameter()
-#        param.RESAMPLING_TYPE = "replace"
-#        param.N_FOLD = 100
-#        # 乱数モジュール
-#        param.RAND = random.Random()
-#        # 実行
-#        main(param)
-
+    for ts in ["HBX", "HBX3", "HBX1"]:
+        for re in ["none", "bootstrap", "smote"]:
+            for fe in ["SSSM", "SMSK", "SLICE"]:
+                # パラメータモジュール
+                param = myParameter.myParameter()
+                # 乱数モジュール
+                param.RAND = random.Random()
+                
+                if re in ["bootstrap", "smote"]:
+                    for rs in [20, 30, 40]:
+                        for nf in [10, None]:
+                            param.TARGET_SIGNAL = ts
+                            param.RESAMPLING_METHOD = re        
+                            param.RESAMPLING_SIZE = rs
+                            param.FEATURE_TYPE = fe
+                            param.N_FOLD = nf
+                            
+                            fp = open("memo.txt", 'a')
+                            fp.write(",".join([str(mm) for mm in [ts, re, rs, fe, nf]]))
+                            fp.write("\n")
+                            fp.close()
+                            
+                            # 実行
+                            main(param)
+        
 
 def main(param):    
     # 書込み対象のファイルを用意
@@ -84,7 +89,8 @@ def main(param):
             fp = open("analysis/log.txt", 'a')
             fp.write(subject_id + "\n")
             fp.write(e.value + "\n")
-            fp.write(traceback.format_exc() + '\n')
+            fp.write(str(traceback.format_exc()) + '\n')
+            fp.close()
         except Exception, e:
             print traceback.format_exc()         
                

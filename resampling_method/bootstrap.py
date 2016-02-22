@@ -48,7 +48,7 @@ def bootstrap(feature_list, new_sample_num, resampling_size, randobj, duplicatio
         # 全ての組合せを生成
         combi = list(itertools.combinations(index_list, resampling_size))
         # 組合せの数が生成数に足りない場合
-        if combi < new_sample_num:
+        if len(combi) < new_sample_num:
             raise MyError("Sample Combination Size is smaller than the number of resampling size.")
         # ランダマイズ
         randobj.shuffle(combi)
@@ -57,21 +57,6 @@ def bootstrap(feature_list, new_sample_num, resampling_size, randobj, duplicatio
         for s in range(new_sample_num):
             new_feature = np.average([feature_list[i] for i in combi[s]], axis=0)    
             new_feature_list.append(list(new_feature))
-        
-        # サンプルの組合せの数が、指定された数を上回っているか
-        # sample_numCresampling_size > new_sample_num
-#        if reduce(lambda x,y:x*y, range(sample_num - )) #        
-#        # 重複無しで抽出
-#        group_index_list = []
-#        while len(new_feature_list) < new_sample_num:
-#            randobj.shuffle(index_list)
-#            group_index = index_list[:resampling_size]
-#            print group_index, group_index in group_index_list
-#            if not (group_index in group_index_list):
-#                group_index_list.append(group_index)
-#                new_feature = np.average([feature_list[i] for i in group_index_list], axis=0) # 行間で平均 @UndefinedVariable
-#                new_feature_list.append(list(new_feature))
-#        print group_index_list
         
     return new_feature_list
 

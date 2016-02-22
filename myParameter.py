@@ -160,7 +160,7 @@ class myParameter():
 #                           3:0,5:1,
 #                           6:1,7:1}
         CLASS_NUM = 2
-        TASK_DURATION = 150 # 0.1[s]単位、今回は10秒間
+        TASK_DURATION = 100 # 0.1[s]単位、今回は10秒間
         NOISY_THRESHOLD = 0.1 # ノイズ閾値
         NOISY_T_RANGE = 10 # ノイズ判定範囲
         if False:
