@@ -131,6 +131,13 @@ class myParameter():
     EPOCH = 100 #200回繰り返す
     ACTIVATION_FUNCTION = "softmax"
     
+    # SVM用パラメータ
+    # sklearnのsvm.SVCの設定に準拠
+    KERNEL_TYPE = "linear" # "rbf", "poly", "linear", "sigmoid"より選択
+    GRIDSEARCH_FOLD = 5 # GRID Search用のN-Fold数
+    COST_LIST = [2**i for i in range(-5, 15, 2)] # 設定はlibSVMより拝借
+    GAMMA_LIST = [2**i for i in range(3, -15, -2)] # 設定はlibSVMより拝借
+    
     # 乱数モジュールへのリファレンス
     RAND = None
 

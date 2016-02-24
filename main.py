@@ -30,6 +30,7 @@ from resampling_method import resampling_controller as recon
 from my_classifier.separate_dataset import separate_dataset_for_K_FOLD
 import my_classifier.neural_network as mcnn
 import my_classifier.lda as mclda
+import my_classifier.svm as mcsvm
 from my_classifier.proc_res import confusion_matrix as confmat
 from my_classifier.proc_res import evaluation_regression as evre
 from matplotlib.pyplot import axis
@@ -55,7 +56,7 @@ def repeat_main():
                             param.RESAMPLING_SIZE = rs
                             param.FEATURE_TYPE = fe
                             param.N_FOLD = nf
-                            param.LEARNING_METHOD = "LDA"
+                            param.LEARNING_METHOD = "SVM"
                             
                             fp = open("memo.txt", 'a')
                             fp.write(",".join([str(mm) for mm in [ts, re, rs, fe, nf]]))
@@ -63,17 +64,21 @@ def repeat_main():
                             fp.close()
                             
                             # 実行
-                            main(param)
-        
+                            _addfilename = ts+re+str(rs)+fe+str(nf)+param.LEARNING_METHOD
+                            main(param, addfilename = _addfilename)
+                            quit()
 
-def main(param):    
+def main(param, addfilename = None):    
     # 書込み対象のファイルを用意
     result_filename = "analysis/result/result.csv"
     if os.path.exists(result_filename):
         _directory, _filename = os.path.split(result_filename)
         _filename, _extention = os.path.splitext(_filename)
         now = datetime.datetime.now()
-        _filename += "_" + now.strftime("%Y%m%d%H%M")
+        if addfilename:
+            _filename += "_" + now.strftime(addfilename+"_%Y%m%d%H%M")
+        else:
+            _filename += "_" + now.strftime("%Y%m%d%H%M")
         result_filename = os.path.join(_directory, _filename + _extention)
 
     # 被験者IDリスト
@@ -360,6 +365,22 @@ def processing(subject_id, param, result_filename):
                 all_test_label_list.extend(test_label_list)
                 all_result_label_list.extend(result_label_list)
                 all_result_loss_list.extend(result_probability_list)        
+        # LDA
+        if param.LEARNING_METHOD == "SVM":
+            print "SVM"
+            # クラス分類型
+            if param.LEARNING_TYPE == "class":
+                print "class"
+                
+                # トレーニング & 識別
+                print "training & test..."
+                precision, result_label_list, result_probability_list, svm_obj = mcsvm.multiclass_svm(resampled_training_feature_array, resampled_training_label_array, test_feature_array, test_label_array)
+                
+                # 識別結果の格納
+                default_accuracy += precision
+                all_test_label_list.extend(test_label_list)
+                all_result_label_list.extend(result_label_list)
+                all_result_loss_list.extend(result_probability_list)        
         # N-FOLD終わり
         
     # 全体識別率
@@ -397,6 +418,10 @@ def processing(subject_id, param, result_filename):
         if param.LEARNING_METHOD == "NN":
             logging_result_class(subject_id, result_filename, default_accuracy, default_loss, precision, recall, f_measure, dist, corr, p_value, result_mat, all_test_label_list, all_result_label_list, all_result_loss_list)
         elif param.LEARNING_METHOD == "LDA":
+            # default_lossがないので0で代用
+            # all_result_loss_listがprobabilityのリストであることに注意
+            logging_result_class(subject_id, result_filename, default_accuracy, 0,  precision, recall, f_measure, dist, corr, p_value, result_mat, all_test_label_list, all_result_label_list, all_result_loss_list)
+        elif param.LEARNING_METHOD == "SVM":
             # default_lossがないので0で代用
             # all_result_loss_listがprobabilityのリストであることに注意
             logging_result_class(subject_id, result_filename, default_accuracy, 0,  precision, recall, f_measure, dist, corr, p_value, result_mat, all_test_label_list, all_result_label_list, all_result_loss_list)

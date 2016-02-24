@@ -2,8 +2,10 @@
 
 '''
 Created on 2016/02/23
-
 @author: misato
+
+参考URL
+http://scikit-learn.org/0.16/modules/generated/sklearn.lda.LDA.html#sklearn.lda.LDA
 '''
 
 import numpy as np
