@@ -39,34 +39,54 @@ PRINT_FLAG = True
 
 def repeat_main():
     repeat_num = 1
-    # none
-    for ts in ["HBX", "HBX3", "HBX1"]:
-        for re in ["none", "bootstrap", "smote"]:
-            for fe in ["SSSM", "SMSK", "SLICE"]:
-                # パラメータモジュール
-                param = myParameter.myParameter()
-                # 乱数モジュール
-                param.RAND = random.Random()
-                
-                if re in ["bootstrap", "smote"]:
-                    for rs in [20, 30, 40]:
+
+    # パラメータモジュール
+    param = myParameter.myParameter()
+    # 乱数モジュール
+    param.RAND = random.Random()
+
+    for lm in ["SVM", "LDA", "ANN"]:
+        for ts in ["HBX", "HBX3", "HBX1"]:
+            for re in ["none"]:
+#            for re in ["none", "bootstrap", "smote"]:
+                for fe in ["SSSM", "SMSK", "SLICE"]:
+                    
+                    if re in ["bootstrap", "smote"]:
+                        for rs in [20, 30, 40]:
+                            for nf in [10, None]:
+                                param.LEARNING_METHOD = lm
+                                param.TARGET_SIGNAL = ts
+                                param.RESAMPLING_METHOD = re        
+                                param.RESAMPLING_SIZE = rs
+                                param.FEATURE_TYPE = fe
+                                param.N_FOLD = nf
+                                
+                                fp = open("memo.txt", 'a')
+                                fp.write(",".join([str(mm) for mm in [lm, ts, re, rs, fe, nf]]))
+                                fp.write("\n")
+                                fp.close()
+                                
+                                # 実行
+                                _addfilename = lm+ts+re+str(rs)+fe+str(nf)
+                                main(param, addfilename = _addfilename)
+    
+                    elif re == "none":            
                         for nf in [10, None]:
                             param.TARGET_SIGNAL = ts
                             param.RESAMPLING_METHOD = re        
                             param.RESAMPLING_SIZE = rs
                             param.FEATURE_TYPE = fe
                             param.N_FOLD = nf
-                            param.LEARNING_METHOD = "SVM"
                             
                             fp = open("memo.txt", 'a')
-                            fp.write(",".join([str(mm) for mm in [ts, re, rs, fe, nf]]))
+                            fp.write(",".join([str(mm) for mm in [lm, ts, re, rs, fe, nf]]))
                             fp.write("\n")
                             fp.close()
                             
                             # 実行
-                            _addfilename = ts+re+str(rs)+fe+str(nf)+param.LEARNING_METHOD
+                            _addfilename = lm+ts+re+str(rs)+fe+str(nf)
                             main(param, addfilename = _addfilename)
-                            quit()
+    
 
 def main(param, addfilename = None):    
     # 書込み対象のファイルを用意
