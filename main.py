@@ -41,9 +41,6 @@ def repeat_main():
     repeat_num = 1
 
     # パラメータモジュール
-    param = myParameter.myParameter()
-    # 乱数モジュール
-    param.RAND = random.Random()
 
     for lm in ["SVM", "LDA", "ANN"]:
         for ts in ["HBX", "HBX3", "HBX1"]:
@@ -54,9 +51,12 @@ def repeat_main():
                     if re in ["bootstrap", "smote"]:
                         for rs in [20, 30, 40]:
                             for nf in [10, None]:
+                                param = myParameter.myParameter()
+                                # 乱数モジュール
+                                param.RAND = random.Random()
                                 param.LEARNING_METHOD = lm
                                 param.TARGET_SIGNAL = ts
-                                param.RESAMPLING_METHOD = re        
+                                param.RESAMPLING_METHOD = re      
                                 param.RESAMPLING_SIZE = rs
                                 param.FEATURE_TYPE = fe
                                 param.N_FOLD = nf
@@ -70,8 +70,12 @@ def repeat_main():
                                 _addfilename = lm+ts+re+str(rs)+fe+str(nf)
                                 main(param, addfilename = _addfilename)
     
-                    elif re == "none":            
+                    elif re == "none":  
+                        rs = 0          
                         for nf in [10, None]:
+                            param = myParameter.myParameter()
+                            # 乱数モジュール
+                            param.RAND = random.Random()
                             param.TARGET_SIGNAL = ts
                             param.RESAMPLING_METHOD = re        
                             param.RESAMPLING_SIZE = rs
@@ -297,6 +301,7 @@ def processing(subject_id, param, result_filename):
         print "resampling..."
         resampled_training_label_list, resampled_training_feature_array = recon.resampling(training_label_list, 
                                                                                      training_feature_array, param)
+        
         # トレーニングデータの並び替え
         mixed = np.array(resampled_training_label_list).reshape((len(resampled_training_label_list),1))
         mixed = np.c_[mixed, resampled_training_feature_array]            

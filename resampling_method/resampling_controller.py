@@ -14,13 +14,17 @@ def resampling(label_list, feature_list, param):
     """
     リサンプリングの実行
     @param label_list: ラベル
-    @param feature_list: 特徴量 二次元array型(サンプル数×特徴次元数)
+    @param feature_list: 特徴量 <2次元array n sample * m features>
     @param param: パラメータモジュール  
-    @return: 元のラベル+新しく作成されたラベルのリスト、元の特徴量+新しく作成された特徴量リスト
+    @return: 元のラベル+新しく作成されたラベルのリスト <n+x sample>
+             元の特徴量+新しく作成された特徴量array <n+x sample * m feature>
     """
-    if param.RESAMPLING_TYPE == "none": # リサンプリングしない
-        return label_list, feature_list
-
+    if not hasattr(param, "RESAMPLING_TYPE"):
+        raise NameError("resampling type not exists.")
+        quit()
+    
+    if param.RESAMPLING_METHOD == "none": # リサンプリングしない
+        return label_list, np.asarray(feature_list)
     # ラベルの一意リスト    
     distinct_label_list = set(label_list)
     
