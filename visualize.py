@@ -32,33 +32,38 @@ def visualize():
         subject, data = read_data(target_filename, target_data)
         data_list.append(data)
     
-    box_plot(data_list[:36], parametername_list[:36], target_data, 0.0, _title = "HBX")
-    box_plot(data_list[36:72], parametername_list[36:72], target_data, 0.0, _title = "HBX3")
-    box_plot(data_list[72:], parametername_list[72:], target_data, 0.0, _title = "HBX1")
+    data_size = len(data_list)
+    box_plot(data_list[:data_size/3], parametername_list[:data_size/3], target_data, 0.0, _title = "HBX")
+    box_plot(data_list[data_size/3:data_size/3*2], parametername_list[data_size/3:data_size/3*2], target_data, 0.0, _title = "HBX3")
+    box_plot(data_list[data_size/3*2:], parametername_list[data_size/3*2:], target_data, 0.0, _title = "HBX1")
     
 
-def convert_data():
+def convert_to_pivot():
     """
-    統一ピボット形式への変換
+    統一ピボット形式へデータを変換
     """
     # データ置き場
     target_directory = "analysis/result/Comparison_20160222"
     
-    # 視覚化対象
-    target_method = "ANN"
-    #target_data = "accuracy"
+    # 対象
+    target_method = "LDA"
     target_data = "all"
     plot_type = "box"
     
-    # 描画
+    # pivot作成対象となるデータのパラメータ、結果ファイル名を格納したtable.csvを読込む
     parameter_list, filename_list = read_table(os.path.join(target_directory, target_method, "table.csv"))
+    
+    # パラメータの読み込み
     parametername_list = ["_".join(str(p)) for p in parameter_list]
+    # 対応するデータの読み込み
     data_list = []
     for i in range(len(filename_list)):
         target_filename = os.path.join(target_directory, target_method, filename_list[i])
+        # データの読み込み
         _subject_list, _data_list = read_data(target_filename, target_data)
         data_list.append(_data_list)
 
+    # 
     header_list = ["signal", "re_method", "re_size", "feature", "nfold", 
                    "subject_id","accuracy","loss","average_precition",
                    "average_recall","average_Fmeasure","average_distance","corr","p_value"]        
@@ -71,4 +76,5 @@ def convert_data():
 #    print marge_array
 
 if __name__=="__main__":
-    convert_data()
+    #convert_to_pivot()
+    visualize()

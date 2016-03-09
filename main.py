@@ -42,6 +42,7 @@ def repeat_main():
 
     # パラメータモジュール
 
+#    for lm in ["LDA"]:
     for lm in ["SVM", "LDA", "ANN"]:
         for ts in ["HBX", "HBX3", "HBX1"]:
             for re in ["none"]:
@@ -76,19 +77,21 @@ def repeat_main():
                             param = myParameter.myParameter()
                             # 乱数モジュール
                             param.RAND = random.Random()
+                            param.LEARNING_METHOD = lm
                             param.TARGET_SIGNAL = ts
-                            param.RESAMPLING_METHOD = re        
+                            param.RESAMPLING_METHOD = re      
                             param.RESAMPLING_SIZE = rs
                             param.FEATURE_TYPE = fe
                             param.N_FOLD = nf
                             
+                            _addfilename = lm+ts+re+str(rs)+fe+str(nf)
+
                             fp = open("memo.txt", 'a')
                             fp.write(",".join([str(mm) for mm in [lm, ts, re, rs, fe, nf]]))
                             fp.write("\n")
                             fp.close()
                             
                             # 実行
-                            _addfilename = lm+ts+re+str(rs)+fe+str(nf)
                             main(param, addfilename = _addfilename)
     
 
@@ -390,7 +393,7 @@ def processing(subject_id, param, result_filename):
                 all_test_label_list.extend(test_label_list)
                 all_result_label_list.extend(result_label_list)
                 all_result_loss_list.extend(result_probability_list)        
-        # LDA
+        # SVM
         if param.LEARNING_METHOD == "SVM":
             print "SVM"
             # クラス分類型
